@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-import 'package:flutter/services.dart';
 import 'package:telephony/telephony.dart';
 
 void main() {
@@ -31,7 +30,8 @@ class _MyAppState extends State<MyApp> {
     // We also handle the message potentially returning null.
     try {
       platformVersion = await Telephony.telephony ?? {};
-    } on PlatformException {
+      print(platformVersion);
+    } catch (error) {
       platformVersion = {};
     }
 

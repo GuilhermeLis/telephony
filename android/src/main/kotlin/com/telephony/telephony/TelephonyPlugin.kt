@@ -18,6 +18,10 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import android.telephony.ServiceState
+
+
+
 
 /** TelephonyPlugin */
 class TelephonyPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -27,8 +31,7 @@ class TelephonyPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   private val MY_PERMISSIONS_REQUEST_LOCATION = 99
 
 
-
-  /// The MethodChannel that will the communication between Flutter and native Android
+  /// The MethodChannel that wilLouanel the communication between Flutter and native Android
   ///
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
@@ -48,61 +51,97 @@ class TelephonyPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
       val telephonyManager = applicationContext.getSystemService(TELEPHONY_SERVICE) as TelephonyManager;
       val resultObject = hashMapOf<String, Any?>();
-      if(Build.VERSION.SDK_INT >= 26 && (ActivityCompat.checkSelfPermission(activity, android.Manifest.permission.READ_PHONE_STATE) == PERMISSION_GRANTED ||
-              ActivityCompat.checkSelfPermission(activity, android.Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)){
-        ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.READ_PHONE_STATE), MY_PERMISSIONS_REQUEST_READ_PHONE_STATE);
-//        resultObject["meid"] = telephonyManager.meid;
-      }
+//      val serviceState = ServiceState()
+
+
+      // if(Build.VERSION.SDK_INT >= 26 && (ActivityCompat.checkSelfPermission(activity, android.Manifest.permission.READ_PHONE_STATE) == PERMISSION_GRANTED ||
+      //         ActivityCompat.checkSelfPermission(activity, android.Manifest.permission.ACCESS_FINE_LOCATION) == PERMISSION_GRANTED)){
+      //   ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.READ_PHONE_STATE), MY_PERMISSIONS_REQUEST_READ_PHONE_STATE);
+      //  resultObject["meid"] = telephonyManager.meid;
+      // }
 
 //        resultObject["simSerialNumber"] = telephonyManager.simSerialNumber;
       if (Build.VERSION.SDK_INT >= 30) {
-          resultObject["activeModemCount"] = telephonyManager.activeModemCount;
-          resultObject["phoneCount"]= telephonyManager.activeModemCount;
+          resultObject["activeModemCount"] = telephonyManager.activeModemCount; //
+          resultObject["phoneCount"]= telephonyManager.activeModemCount; //
       }
       if (Build.VERSION.SDK_INT >= 28){
-        resultObject["simCarrierId"] = telephonyManager.simCarrierId;
-        resultObject["simCarrierIdName"] = telephonyManager.simCarrierIdName;
+        resultObject["simCarrierId"] = telephonyManager.simCarrierId; //
+        resultObject["simCarrierIdName"] = telephonyManager.simCarrierIdName; //
       }
       if(Build.VERSION.SDK_INT >= 26 && onPermission(READ_PHONE_STATE)){
 //        resultObject["imei"]= telephonyManager.imei;
         resultObject["networkSpecifier"]= telephonyManager.networkSpecifier;
       }
-      if(Build.VERSION.SDK_INT >= 24 ){
+      if(Build.VERSION.SDK_INT >= 24 && onPermission(READ_PHONE_STATE) ){
         resultObject["networkType"]= telephonyManager.dataNetworkType;
       }
-      if (Build.VERSION.SDK_INT >= 17 && onPermission(ACCESS_FINE_LOCATION)) {
-        resultObject["allCellInfo"] = telephonyManager.allCellInfo;
+      if (onPermission(READ_PHONE_STATE)){
+        resultObject["deviceSoftwareVersion"] = telephonyManager.deviceSoftwareVersion;
+        resultObject["isDataEnabled"] = telephonyManager.isDataEnabled;
       }
-      if (onPermission(ACCESS_COARSE_LOCATION)) {
-        resultObject["serviceState"] = telephonyManager.serviceState;
+      if(onPermission(READ_SMS) || onPermission(READ_PHONE_NUMBERS) || onPermission(READ_PHONE_STATE)){
+        resultObject["line1Number"] = telephonyManager.line1Number;
       }
+//      if (Build.VERSION.SDK_INT >= 17 && onPermission(ACCESS_FINE_LOCATION)) {
+        // resultObject["allCellInfo"] = telephonyManager.allCellInfo;
+//      }
+//      if (onPermission(ACCESS_COARSE_LOCATION)) {
+//        resultObject["serviceState"] = telephonyManager.serviceState;
+//      }
       resultObject["networkCountryIso"]= telephonyManager.networkCountryIso;
       resultObject["networkOperator"]= telephonyManager.networkOperator;
       resultObject["networkOperatorName"]= telephonyManager.networkOperatorName;
       resultObject["simCountryIso"]= telephonyManager.simCountryIso;
       resultObject["phoneType"] = telephonyManager.phoneType;
-      resultObject["callState"] = telephonyManager.callState;
+//      resultObject["callState"] = telephonyManager.callState;
       resultObject["simOperatorName"] = telephonyManager.simOperatorName;
       resultObject["simOperator"] = telephonyManager.simOperator;
+      resultObject["isSmsCapable"] = telephonyManager.isSmsCapable;
+      resultObject["isVoiceCapable"] = telephonyManager.isVoiceCapable;
+
+
 //      resultObject["cellInfo"] = telephonyManager.allCellInfo;
-//      }
 
       result.success(resultObject);
     } else {
-      result.notImplemented()
+      result.notImplemented();
     }
   }
     private fun  onPermission(permission: String): Boolean {
     return when(permission){
       ACCESS_FINE_LOCATION -> {
-        if(ActivityCompat.checkSelfPermission(activity, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED){
+        return if(ActivityCompat.checkSelfPermission(activity, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED){
           true;
         }else {
           ActivityCompat.requestPermissions(activity, arrayOf(ACCESS_FINE_LOCATION), MY_PERMISSIONS_REQUEST_LOCATION);
           ActivityCompat.checkSelfPermission(activity, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED;
         }
       }
-      READ_PHONE_STATE -> ActivityCompat.checkSelfPermission(activity, READ_PHONE_STATE) == PERMISSION_GRANTED;
+      READ_PHONE_STATE -> {
+        return if (ActivityCompat.checkSelfPermission(activity, READ_PHONE_STATE) == PERMISSION_GRANTED){
+          true;
+        }else{
+          ActivityCompat.requestPermissions(activity, arrayOf(READ_PHONE_STATE), MY_PERMISSIONS_REQUEST_READ_PHONE_STATE);
+          ActivityCompat.checkSelfPermission(activity, READ_PHONE_STATE) == PERMISSION_GRANTED;
+        }
+      }
+      READ_SMS -> {
+        return if (ActivityCompat.checkSelfPermission(activity, READ_SMS) == PERMISSION_GRANTED) {
+          true;
+        } else{
+          ActivityCompat.requestPermissions(activity, arrayOf(READ_SMS), 2);
+          ActivityCompat.checkSelfPermission(activity, READ_SMS) == PERMISSION_GRANTED;
+        }
+      }
+      READ_PHONE_NUMBERS ->{
+        return if (ActivityCompat.checkSelfPermission(activity, READ_PHONE_NUMBERS) == PERMISSION_GRANTED){
+          true;
+        }else{
+          ActivityCompat.requestPermissions(activity, arrayOf(READ_PHONE_NUMBERS), 1);
+          ActivityCompat.checkSelfPermission(activity, READ_PHONE_NUMBERS) == PERMISSION_GRANTED
+        }
+      }
       ACCESS_COARSE_LOCATION -> ActivityCompat.checkSelfPermission(activity, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED;
       else -> false;
     }
